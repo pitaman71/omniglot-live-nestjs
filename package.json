@@ -1,6 +1,6 @@
 {
-    "name": "omniglot-live-nestjs",
-    "version": "0.5.1",
+    "name": "@pitaman71/omniglot-live-nestjs",
+    "version": "0.5.2",
     "description": "Universal backend services for NestJS and Omniglot",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
