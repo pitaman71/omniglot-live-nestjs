@@ -1,8 +1,7 @@
-// data.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
+// persist.service.ts
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as rxjs from 'rxjs';
-
 import * as Introspection from 'typescript-introspection';
 import { 
   Definitions, 
@@ -18,7 +17,7 @@ import {
   RelationMapper 
 } from '@pitaman71/omniglot-live-dynamodb';
 
-import { PersistConfig } from './persist.config';
+import { PERSIST_CONFIG_KEY, PersistConfig } from './persist.config';
 
 @Injectable()
 export class PersistService implements OnModuleInit {
@@ -26,25 +25,27 @@ export class PersistService implements OnModuleInit {
 
   constructor(
     private configService: ConfigService,
-    private directory: Definitions.Directory
+    @Inject('DIRECTORY') private directory: Definitions.Directory
   ) {}
 
   async onModuleInit() {
     const isDevelopment = this.configService.get('NODE_ENV') !== 'production';
-    const config = this.configService.get<PersistConfig['services']>('services');
-    if(!config)
-      throw new Error('services must be configured');
-    const endpoint = isDevelopment 
-      ? 'http://localhost:8000' 
-      : config['com.amazonaws'].dynamodb.endpoint;
+    const config = this.configService.get<PersistConfig>(PERSIST_CONFIG_KEY);
 
-    console.log(`NODE_ENV = ${process.env.NODE_ENV}`);
-    console.log(`Binding to DynamoDB at ${endpoint}`);
-
-    this._server = new Local.Server(this.directory, '', {
-      ...config['com.amazonaws'].dynamodb,
-      endpoint
-    });
+    // Configure AWS SDK
+    const region = config.AWS_REGION;
+    const accessKeyId = config.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = config.AWS_SECRET_ACCESS_KEY;
+    // Configure AWS SDK
+    const awsConfig = {
+      region,
+      credentials: !accessKeyId || !secretAccessKey ? undefined : {
+        accessKeyId, 
+        secretAccessKey
+      }
+    }
+    
+    this._server = new Local.Server(this.directory, '', awsConfig);
   }
 
   persistZone(): PersistZone.PersistZone {

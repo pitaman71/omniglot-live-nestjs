@@ -39,15 +39,16 @@ export class PersistController {
  }
 
  @Post('replay')
- async replay(@Req() req: Request, @Res() res: Response, @Body() payload: any) {
+ async replay(@Req() req: Request, @Res() res: Response, @Body() body: any) {
    res.setTimeout(60000, () => {
      res.status(408).send('Request Timeout');
    });
 
    return new Tasks.Instrument('nest.controller.replay')
      .logs(console.log, () => this.logEnable)
-     .promises(payload, async () => {
-       if (!payload.key) {
+     .promises(body, async () => {
+      const payload = JSONMarshal.fromJSON(body);
+      if (!payload.key) {
          throw new HttpException(
            `Payload is missing required attribute 'key': ${JSON.stringify(payload)}`,
            HttpStatus.BAD_REQUEST
@@ -71,14 +72,14 @@ export class PersistController {
  }
 
  @Post('pull')
- async pull(@Req() req: Request, @Res() res: Response, @Body() payload: any) {
+ async pull(@Req() req: Request, @Res() res: Response, @Body() body: any) {
    res.setTimeout(60000, () => {
      res.status(408).send('Request Timeout');
    });
-
    return new Tasks.Instrument('nest.controller.pull')
      .logs(console.log, () => this.logEnable)
-     .promises(payload, async () => {
+     .promises(body, async () => {
+       const payload = JSONMarshal.fromJSON(body);
        if (!payload.key) {
          throw new HttpException(
            `Payload is missing required attribute 'key': ${JSON.stringify(payload)}`,
@@ -110,7 +111,7 @@ export class PersistController {
          throw new HttpException({ mutations, errors }, HttpStatus.INTERNAL_SERVER_ERROR);
        }
 
-       res.status(200).json({ mutations, errors });
+       res.status(200).json(JSONMarshal.toJSON({ mutations, errors }));
      })
      .catch(e => {
        throw new HttpException(e.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -118,14 +119,15 @@ export class PersistController {
  }
 
  @Post('push')
- async push(@Req() req: Request, @Res() res: Response, @Body() payload: any) {
+ async push(@Req() req: Request, @Res() res: Response, @Body() body: any) {
    res.setTimeout(60000, () => {
      res.status(408).send('Request Timeout');
    });
-
+   
    return new Tasks.Instrument('nest.controller.push')
      .logs(console.log, () => this.logEnable)
-     .promises(payload, async () => {
+     .promises(body, async () => {
+       const payload = JSONMarshal.fromJSON(body);
        if (!payload.key) {
          throw new HttpException(
            `Payload is missing required attribute 'key': ${JSON.stringify(payload)}`,
@@ -141,7 +143,7 @@ export class PersistController {
        }
 
        const last = await this.persistService.push(payload.key, ...payload.suffix);
-       res.status(200).json({ last });
+       res.status(200).json(JSONMarshal.toJSON({ last }));
      })
      .catch(e => {
        throw new HttpException(e.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
